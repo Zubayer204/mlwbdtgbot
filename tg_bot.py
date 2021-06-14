@@ -1,28 +1,32 @@
 import telebot
 import requests
 from bs4 import BeautifulSoup
-import re
 import os
-
 from flask import Flask, request
+import re
+import logging
 
 
 with open('v.env') as f:
     API_KEY = f.read().split('API_KEY=')[1].strip()
 bot = telebot.TeleBot(API_KEY)
-server = Flask(__name__)
+print(bot.get_webhook_info())
+
+app = Flask(__name__)
 
 
-@server.route('/' + API_KEY, methods=['POST'])
+@app.route('/' + API_KEY, methods=['POST'])
 def getMessage():
-    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode('utf-8'))])
+    json_data = request.stream.read().decode('utf-8')
+    update = telebot.types.Update.de_json(json_data)
+    bot.process_new_updates([update])
     return '!', 200
 
 
-@server.route('/')
+@app.route('/')
 def webhook():
     bot.remove_webhook()
-    s = bot.set_webhook(url="https://mlwbdtgapp.herokuapp.com/" + API_KEY)
+    s = bot.set_webhook(url="https://mlwbdtgbot.herokuapp.com/" + API_KEY)
     print(bot.get_webhook_info())
     if s:
         return "ok"
@@ -42,7 +46,12 @@ His ig: https://www.instagram.com/zubayer204/
 """
 # His ig: https://www.instagram.com/zubayer204/
     bot.send_message(message.chat.id, msg)
-    print(message.chat.first_name, message.chat.last_name, message.chat.username)
+    bot.send_message(
+        1681990612,
+        message.chat.first_name,
+        message.chat.last_name,
+        message.chat.username
+    )
 
     msg = """
 Get ready to be amazed! To download your favorite movie just send a message to me like this:
@@ -56,6 +65,10 @@ Movie: karnan
 Then you'll get a list of the search result.
 Choose your required movie by number.
 Voala! You'll get all the download links.
+
+Sorry for this:
+after sending a message please wait for a few seconds.
+we are running this bot for free. So to make it free the bot will be slow for the first message
 """
     bot.send_message(message.chat.id, msg)
 
@@ -77,7 +90,9 @@ def send_price(message):
     mv_name = message.text.split(': ')[1]
 
     if message.chat.id != 1681990612:
-        bot.send_message(1681990612, message.chat.first_name + " " + message.chat.last_name + " " + mv_name)
+        my_msg =  message.chat.first_name + " " + message.chat.last_name
+        my_msg = my_msg + " " + message.chat.username + " " + mv_name
+        bot.send_message(1681990612, my_msg)
 
     url = mv_name.strip()
     url = url.replace(' ', '+')
@@ -135,9 +150,15 @@ def get_num(message, movies):
 
     try:
         res = requests.get(movies[movie_num-1])
-        bot.send_message(message.chat.id, "Getting Download URLs. Please wait...")
+        bot.send_message(
+            message.chat.id,
+            "Getting Download URLs. Please wait..."
+        )
     except Exception:
-        m = bot.send_message(message.chat.id, f'Please enter a number between 1 and {len(movies)}')
+        m = bot.send_message(
+            message.chat.id,
+            f'Please enter a number between 1 and {len(movies)}'
+        )
         bot.register_next_step_handler(m, get_num, movies)
         return
     soup = BeautifulSoup(res.content, 'lxml')
@@ -186,6 +207,15 @@ def get_num(message, movies):
     bot.send_message(message.chat.id, 'Thanks for using my service. If there is any problem, kindly contact me in tg: @zubayer204')
 
 
-if __name__ == "__main__":
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)), debug=True, threaded=True)
+app.logger.disabled = True
+log = logging.getLogger('werkzeug')
+log.disabled = True
 
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get('PORT', 5000)),
+        debug=True,
+        threaded=True
+    )

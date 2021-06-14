@@ -14,7 +14,8 @@ soupsieve = "==2.2.1"
 urllib3 = "==1.26.5"
 pyTelegramBotAPI = "==3.7.9"
 flask = "*"
-aiohttp = "*"
+python-dotenv = "*"
+cloudscraper = "*"
 
 [dev-packages]
 
